@@ -1,12 +1,12 @@
-# Project Trinity
+# Project 3nity
 
-Project Trinity is an autonomous Anti-Money Laundering (AML) engine designed to detect distributed financial crime, Authorized Push Payment (APP) fraud, and offshore shell networks.
+Project 3nity is an autonomous Anti-Money Laundering (AML) engine designed to detect distributed financial crime, Authorized Push Payment (APP) fraud, and offshore shell networks.
 
-Traditional AML tools track the money and fail when funds are fractured across thousands of accounts. Trinity abandons financial tracking and instead triangulates three non-financial signals: operator behavior, network topology, and corporate substance.
+Traditional AML tools track the money and fail when funds are fractured across thousands of accounts. 3nity abandons financial tracking and instead triangulates three non-financial signals: operator behavior, network topology, and corporate substance.
 
 ## The Three Engines
 
-Trinity operates via three distinct evaluation models that fuse into a single risk score.
+3nity operates via three distinct evaluation models that fuse into a single risk score.
 
 ### 1. Gait (Behavioral & Cognitive Strain Model)
 
@@ -66,8 +66,8 @@ The MVP architecture is built on a lightweight, Python-centric web stack designe
 1. Clone the repository:
 
 ```bash
-   git clone https://github.com/your-org/project-trinity.git
-   cd project-trinity
+   git clone https://github.com/your-org/project-3nity.git
+   cd project-3nity
 ```
 
 2. Set up a virtual environment:
@@ -84,8 +84,9 @@ The MVP architecture is built on a lightweight, Python-centric web stack designe
 ```
 
 4. Configure environment variables. Create a `.env` file in the root directory:
-DATABASE_URL=postgresql://user:password@localhost/trinity_db
+DATABASE_URL=postgresql://user:password@localhost/3nity_db
 REDIS_URL=redis://localhost:6379/0
+
 
 5. Run database migrations:
 
