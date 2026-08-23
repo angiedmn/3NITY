@@ -1,3 +1,28 @@
+<div align="center">
+
+# Project Trinity
+### Autonomous Multi-Layered Intelligence Against Distributed Financial Crime
+
+![Last Commit](https://img.shields.io/github/last-commit/https://github.com/angiedmn/3NITY?style=flat-square&color=yellow)
+![Top Language](https://img.shields.io/github/languages/top/https://github.com/angiedmn/3NITY?style=flat-square&color=blue)
+![Languages](https://img.shields.io/github/languages/count/https://github.com/angiedmn/3NITY?style=flat-square&color=green)
+![License](https://img.shields.io/badge/license-Proprietary-blue?style=flat-square)
+
+<br/>
+
+**Built with the tools and technologies:**
+
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+[![Celery](https://img.shields.io/badge/Celery-37814A?style=for-the-badge&logo=celery&logoColor=white)](https://docs.celeryq.dev/)
+
+</div>
+
+---
 # Project 3nity
 
 Project 3nity is an autonomous Anti-Money Laundering (AML) engine designed to detect distributed financial crime, Authorized Push Payment (APP) fraud, and offshore shell networks.
