@@ -3,9 +3,9 @@
 # Project Trinity
 ### Autonomous Multi-Layered Intelligence Against Distributed Financial Crime
 
-![Last Commit](https://img.shields.io/github/last-commit/https://github.com/angiedmn/3NITY?style=flat-square&color=yellow)
-![Top Language](https://img.shields.io/github/languages/top/https://github.com/angiedmn/3NITY?style=flat-square&color=blue)
-![Languages](https://img.shields.io/github/languages/count/https://github.com/angiedmn/3NITY?style=flat-square&color=green)
+![Last Commit](https://img.shields.io/github/last-commit/angiedmn/3NITY?style=flat-square&color=yellow)
+![Top Language](https://img.shields.io/github/languages/top/angiedmn/3NITY?style=flat-square&color=blue)
+![Languages](https://img.shields.io/github/languages/count/angiedmn/3NITY?style=flat-square&color=green)
 ![License](https://img.shields.io/badge/license-Proprietary-blue?style=flat-square)
 
 <br/>
