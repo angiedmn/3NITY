@@ -1,0 +1,48 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: mirage_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    container_name: mirage_api
+    # NOTE: --reload is convenient for local dev but shouldn't ship in a
+    # production image (extra overhead, re-execs on file changes, and
+    # implies bind-mounting source into the container as done below).
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      # Forces single-threaded BLAS/OpenMP inside the container, working
+      # around the XGBoost segfault-on-predict issue in resource-
+      # constrained containers (see scoring.py / train_model.py comments).
+      - OMP_NUM_THREADS=1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    container_name: mirage_worker
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - OMP_NUM_THREADS=1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
