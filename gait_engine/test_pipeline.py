@@ -1,9 +1,9 @@
 """
 test_pipeline.py
 -----------------
-End-to-end smoke test for the Gait Engine, using synthetic account IDs
-(no Kaggle CSV required) so you can validate the whole pipeline before
-wiring up real data or a live Postgres instance.
+End-to-end smoke test for the Gait Engine.
+Uses real account IDs from the IBM Kaggle dataset enriched with 
+synthetic telemetry to validate the ML pipeline end-to-end.
 
 Run:
     python test_pipeline.py
@@ -12,7 +12,8 @@ Run:
 import numpy as np
 import pandas as pd
 
-from simulate_telemetry import build_gait_dataset
+# Import our new bridge script instead of the fake telemetry generator
+from bridge_dataset import enrich_ibm_with_gait
 from features import extract_feature_matrix, fit_scaler, save_scaler
 from train_model import (
     train_isolation_forest,
@@ -20,15 +21,15 @@ from train_model import (
     generate_tags,
 )
 
-
-def make_fake_account_ids(n: int = 2000) -> pd.Series:
-    return pd.Series([f"ACC{i:06d}" for i in range(n)], name="account_id")
-
-
 def main():
-    print("=== Step 1: simulate telemetry for fake accounts ===")
-    account_ids = make_fake_account_ids(2000)
-    df = build_gait_dataset(account_ids, bot_ratio=0.06, mule_ratio=0.04)
+    print("=== Step 1: Simulate telemetry for IBM accounts ===")
+    # Using the specific file name downloaded from Kaggle
+    input_csv = "HI-Small_Trans.csv" 
+    output_csv = "gait_telemetry_synthetic.csv"
+    
+    # Generate the biometrics and return the DataFrame
+    df = enrich_ibm_with_gait(input_csv, output_csv)
+    print("\nLabel distribution:")
     print(df["label"].value_counts(), "\n")
 
     print("=== Step 2: feature engineering ===")
@@ -50,11 +51,12 @@ def main():
 
     print("=== Step 4: Sanity Check (Are we catching the bad guys?) ===")
     summary = df.groupby("label")["Gait_Score"].mean()
-    print(f"Normal Humans scored a safe average of {summary['human']:.2f} (Low Risk)")
-    print(f"Bots scored a suspicious average of {summary['bot']:.2f} (Medium Risk)")
-    print(f"Coerced Mules scored a critical average of {summary['coerced_mule']:.2f} (High Risk)\n")
+    # Using .get() to avoid KeyError if the dataset doesn't have a specific label yet
+    print(f"Normal Humans scored a safe average of {summary.get('human', 0):.2f} (Low Risk)")
+    print(f"Coerced Mules scored a critical average of {summary.get('coerced_mule', 0):.2f} (High Risk)\n")
 
     print("=== Step 5: Bot Swarm Alert ===")
+    # Inject a 100% synthetic bot swarm to see if the trained model catches them
     rng = np.random.default_rng(0)
     swarm_rows = []
     for i in range(20):
@@ -78,6 +80,8 @@ def main():
     X_swarm = extract_feature_matrix(swarm_df)
     X_swarm_scaled = scaler.transform(X_swarm)
     swarm_raw = model.decision_function(X_swarm_scaled)
+    
+    # Score the swarm using the distribution of the training data
     swarm_df["Gait_Score"] = score_to_gait_score(
         np.concatenate([raw_scores, swarm_raw])
     )[-len(swarm_df):]
