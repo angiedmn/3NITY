@@ -7,8 +7,7 @@ Receives a telemetry payload from the frontend SDK (mouse/keystroke/
 clipboard/app-switch/gyro data captured during a transaction flow),
 scores it against the trained IsolationForest model, stores the
 session vector in pgvector for future similarity lookups, and returns
-the Gait_Score + tags synchronously so the caller (e.g. the Trinity
-Fusion Scorer) can act on it immediately.
+the Gait_Score + tags synchronously so the caller can act on it immediately.
 
 Run with:
     uvicorn api:app --reload --port 8000

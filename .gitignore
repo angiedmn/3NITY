@@ -1,0 +1,29 @@
+# Virtual Environments
+venv/
+env/
+
+# Python Cache & Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data Files (Raw Kaggle data & generated synthetic data)
+*.csv
+HI-Small_Trans.csv
+gait_telemetry_synthetic.csv
+gait_scored_accounts.csv
+
+# Machine Learning Models & Scalers
+*.joblib
+gait_isolation_forest.joblib
+gait_scaler.joblib
+
+# Secrets & Environment Variables (e.g., Postgres credentials)
+.env
+.env.local
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store

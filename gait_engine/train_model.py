@@ -5,12 +5,7 @@ Trains an IsolationForest on the synthetic gait telemetry and produces:
   - Gait_Score (0.0 to 1.0, higher = more anomalous)
   - Tags (e.g. HIGH_CLIPBOARD_USAGE, APP_SWITCH_SPIKE, COGNITIVE_STRAIN_DETECTED)
 
-IsolationForest is trained UNSUPERVISED (it never sees the 'human' /
-'bot' / 'coerced_mule' labels) — it just isolates points that are easy
-to separate from the bulk of the data via random partitioning. Points
-that isolate in fewer splits get higher anomaly scores. We use the
-labels only afterward, to evaluate how well the unsupervised score
-lines up with ground truth.
+IsolationForest is trained UNSUPERVISED
 """
 
 import numpy as np
