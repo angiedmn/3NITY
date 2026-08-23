@@ -1,6 +1,6 @@
 <div align="center">
 
-# Project Trinity
+# Project 3NITY
 ### Autonomous Multi-Layered Intelligence Against Distributed Financial Crime
 
 ![Last Commit](https://img.shields.io/github/last-commit/angiedmn/3NITY?style=flat-square&color=yellow)
