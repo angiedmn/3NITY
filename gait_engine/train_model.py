@@ -34,7 +34,7 @@ def calculate_real_contamination(df: pd.DataFrame) -> float:
         fraud_ratio = df['is_illicit'].mean()
         # Add a tiny buffer to account for undetected zero-day fraud
         return max(0.01, min(fraud_ratio + 0.01, 0.5))
-    return 0.05
+    return 0.08
 
 #unsuprvised model- isolation forest to detect anomalous sessions
 def train_isolation_forest(

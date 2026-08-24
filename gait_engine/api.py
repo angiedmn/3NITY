@@ -1,18 +1,3 @@
-"""
-api.py
-------
-FastAPI ingestion endpoint: POST /api/v1/telemetry/gait
-
-Receives a telemetry payload from the frontend SDK (mouse/keystroke/
-clipboard/app-switch/gyro data captured during a transaction flow),
-scores it against the trained IsolationForest model, stores the
-session vector in pgvector for future similarity lookups, and returns
-the Gait_Score + tags synchronously so the caller can act on it immediately.
-
-Run with:
-    uvicorn api:app --reload --port 8000
-"""
-
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -27,17 +12,18 @@ import pandas as pd
 
 import vector_store
 
-
 class GaitTelemetryPayload(BaseModel):
     account_id: str
-    clipboard_paste_count: float = Field(ge=0) #cant be negative
-    app_switch_count: float = Field(ge=0)
-    keystroke_interval_mean_ms: float = Field(ge=0)
-    keystroke_interval_std_ms: float = Field(ge=0)
-    session_dwell_time_sec: float = Field(ge=0)
-    touch_pressure_var: float = Field(ge=0)
-    gyro_tilt_var: float = Field(ge=0)
-
+    clipboard_paste_count: float = Field(default=0.0, ge=0)
+    app_switch_count: float = Field(default=0.0, ge=0)
+    keystroke_interval_mean_ms: float = Field(default=150.0, ge=0) # Safe human baseline
+    keystroke_interval_std_ms: float = Field(default=40.0, ge=0)
+    session_dwell_time_sec: float = Field(default=60.0, ge=0)
+    touch_pressure_var: float = Field(default=0.03, ge=0)
+    gyro_tilt_var: float = Field(default=0.03, ge=0)
+    flight_time_mean_ms: float = Field(default=80.0, ge=0)
+    mouse_curve_index: float = Field(default=1.5, ge=0) # Safe mobile fallback
+    time_of_day_risk: float = Field(default=0.2, ge=0)
 
 class GaitScoreResponse(BaseModel):
     account_id: str
@@ -46,17 +32,17 @@ class GaitScoreResponse(BaseModel):
     nearest_prior_session_account_id: Optional[str] = None
     nearest_prior_session_similarity: Optional[float] = None
 
-
-# ---- Model/scaler loaded once at startup, not per-request ----
 _model = None
 _scaler = None
+_bounds= None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _model, _scaler
+    global _model, _scaler, _bounds
     _model = joblib.load("gait_isolation_forest.joblib")
     _scaler = load_scaler("gait_scaler.joblib")
+    _bounds = joblib.load("gait_bounds.joblib")
     vector_store.init_db()
     yield
 
