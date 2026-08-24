@@ -8,7 +8,7 @@ from candidates import assign_buckets, generate_candidate_pairs_windowed
 from dtw_matching import compute_dtw_for_candidates
 from isolation_forest import run_isolation_forest, evaluate_against_known_labels
 from dtw_features import aggregate_dtw_features, build_final_feature_matrix, FEATURE_GROUP_A, FEATURE_GROUP_B
-
+from finalize_tempo_score import finalize_tempo_score
 
 
 df = load_data()
@@ -60,10 +60,7 @@ scored_features = run_isolation_forest(final_features, contamination=0.02)
 print(scored_features["tempo_anomaly_score"].describe())
 print(scored_features["tempo_is_anomaly"].value_counts())
 
-scored_features = evaluate_against_known_labels(scored_features, laundering_account_ids)
-scored_features["is_known_laundering"] = scored_features.apply(
-    lambda r: (r["account"], r["bank"]) in laundering_account_ids, axis=1
-)
+
 print(scored_features.groupby("is_known_laundering")["tempo_anomaly_score"].describe())
 
 flagged = scored_features[scored_features["tempo_is_anomaly"]]
@@ -76,7 +73,8 @@ feature_cols = FEATURE_GROUP_A + FEATURE_GROUP_B
 print(scored_features.groupby("is_known_laundering")[feature_cols].mean())
 
 
-
+tempo_output = finalize_tempo_score(scored_features)
+print(tempo_output.head())
 
 
 
