@@ -1,9 +1,3 @@
-"""
-simulate_telemetry.py
----------------------
-Generates synthetic behavioral telemetry data (Gait) to test the engine.
-"""
-
 import numpy as np
 import pandas as pd
 
@@ -31,7 +25,6 @@ def build_gait_dataset(account_ids: pd.Series, bot_ratio: float = 0.06, mule_rat
                 "session_dwell_time_sec": max(10, rng.normal(45, 15)),
                 "touch_pressure_var": max(0.01, rng.normal(0.2, 0.05)),
                 "gyro_tilt_var": max(0.01, rng.normal(0.3, 0.1)),
-                # NEW FEATURES
                 "flight_time_mean_ms": max(20, rng.normal(120, 20)),
                 "mouse_curve_index": max(0.5, rng.normal(1.5, 0.2)),
                 "time_of_day_risk": rng.uniform(0.0, 0.3),
@@ -48,7 +41,6 @@ def build_gait_dataset(account_ids: pd.Series, bot_ratio: float = 0.06, mule_rat
                 "session_dwell_time_sec": max(0.5, rng.normal(2.0, 0.5)),
                 "touch_pressure_var": max(0, rng.normal(0.01, 0.005)),
                 "gyro_tilt_var": max(0, rng.normal(0.05, 0.01)),
-                # NEW FEATURES
                 "flight_time_mean_ms": max(1.0, rng.normal(5.0, 1.0)),
                 "mouse_curve_index": 0.0,
                 "time_of_day_risk": rng.uniform(0.8, 1.0),
@@ -65,7 +57,6 @@ def build_gait_dataset(account_ids: pd.Series, bot_ratio: float = 0.06, mule_rat
                 "session_dwell_time_sec": max(120, rng.normal(300, 100)),
                 "touch_pressure_var": max(0.1, rng.normal(0.6, 0.15)),
                 "gyro_tilt_var": max(0.1, rng.normal(0.8, 0.2)),
-                # NEW FEATURES
                 "flight_time_mean_ms": max(100, rng.normal(300, 50)),
                 "mouse_curve_index": max(1.0, rng.normal(2.5, 0.5)),
                 "time_of_day_risk": rng.uniform(0.2, 0.8),
