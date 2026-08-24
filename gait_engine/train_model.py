@@ -28,6 +28,14 @@ def generate_tags(row: pd.Series) -> list[str]:
         tags.append("HIGH_RISK_HOURS")
     return tags
 
+def calculate_real_contamination(df: pd.DataFrame) -> float:
+    """Dynamically calculates the actual proportion of illicit accounts."""
+    if 'is_illicit' in df.columns:
+        fraud_ratio = df['is_illicit'].mean()
+        # Add a tiny buffer to account for undetected zero-day fraud
+        return max(0.01, min(fraud_ratio + 0.01, 0.5))
+    return 0.05
+
 #unsuprvised model- isolation forest to detect anomalous sessions
 def train_isolation_forest(
     X_scaled: np.ndarray, contamination: float = 0.08, seed: int = 42
@@ -56,10 +64,14 @@ def run_training_pipeline(
     scored_out: str = "gait_scored_accounts.csv",
 ) -> pd.DataFrame:
     df = pd.read_csv(telemetry_csv)
+
     X = extract_feature_matrix(df)
     scaler = fit_scaler(X)
     X_scaled = scaler.transform(X)
-    model = train_isolation_forest(X_scaled)
+    dynamic_contamination = calculate_real_contamination(df)
+    print(f"Auto-tuning model contamination to: {dynamic_contamination:.4f}")
+    
+    model = train_isolation_forest(X_scaled, contamination=dynamic_contamination)
     raw_scores = model.decision_function(X_scaled)
     df["Gait_Score"] = score_to_gait_score(raw_scores)
     df["is_anomaly_prediction"] = model.predict(X_scaled) == -1  # -1 = anomaly
@@ -68,6 +80,7 @@ def run_training_pipeline(
     joblib.dump(model, model_out)
     save_scaler(scaler, scaler_out)
     df.to_csv(scored_out, index=False)
+
     return df
 
 
