@@ -1,20 +1,3 @@
-"""
-vector_store.py
-----------------
-PostgreSQL + pgvector storage for gait session vectors. Lets you ask:
-"Has another account typed with this exact cadence in the last 30 days?"
-via a fast cosine-similarity query, which is a strong bot-swarm signal
-(many different account_ids sharing near-identical kinematics).
-
-Requires:
-  - A running Postgres instance with the pgvector extension installed
-    (CREATE EXTENSION IF NOT EXISTS vector;)
-  - Connection details supplied via environment variables (see below)
-
-Set these before running:
-    GAIT_DB_HOST, GAIT_DB_PORT, GAIT_DB_NAME, GAIT_DB_USER, GAIT_DB_PASSWORD
-"""
-
 import os
 from typing import Optional
 
@@ -22,28 +5,23 @@ import numpy as np
 import psycopg2
 from psycopg2.extras import execute_values
 from pgvector.psycopg2 import register_vector
-
 from features import FEATURE_COLUMNS
 
-VECTOR_DIM = len(FEATURE_COLUMNS)
-
-DB_CONFIG = {
+VECTOR_DIM = len(FEATURE_COLUMNS) #config
+DB_CONFIG = { #connection details
     "host": os.environ.get("GAIT_DB_HOST", "localhost"),
     "port": os.environ.get("GAIT_DB_PORT", "5432"),
     "dbname": os.environ.get("GAIT_DB_NAME", "gait_engine"),
     "user": os.environ.get("GAIT_DB_USER", "postgres"),
     "password": os.environ.get("GAIT_DB_PASSWORD", "postgres"),
 }
-
-
 def get_connection():
     conn = psycopg2.connect(**DB_CONFIG)
     register_vector(conn)
     return conn
 
-
+#integrating postgresql w/ pgvector
 def init_db() -> None:
-    """Create the extension and table if they don't exist yet."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -51,10 +29,8 @@ def init_db() -> None:
             cur.execute(
                 f"""
                 CREATE TABLE IF NOT EXISTS gait_sessions (
-                    id SERIAL PRIMARY KEY,
-                    account_id TEXT NOT NULL,
-                    embedding VECTOR({VECTOR_DIM}) NOT NULL,
-                    gait_score FLOAT NOT NULL,
+                    id SERIAL PRIMARY KEY, account_id TEXT NOT NULL,
+                    embedding VECTOR({VECTOR_DIM}) NOT NULL, gait_score FLOAT NOT NULL,
                     created_at TIMESTAMPTZ DEFAULT now()
                 );
                 """
@@ -70,10 +46,8 @@ def init_db() -> None:
     finally:
         conn.close()
 
-
+#append a new session vector to the database
 def upsert_session_vector(account_id: str, vector: np.ndarray, gait_score: float) -> None:
-    """Insert a new session vector (kept as an append-only log, not a true upsert,
-    since each login/transaction is its own session)."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -86,16 +60,10 @@ def upsert_session_vector(account_id: str, vector: np.ndarray, gait_score: float
     finally:
         conn.close()
 
-
 def find_nearest_session(
     vector: np.ndarray, exclude_account_id: Optional[str] = None, lookback_days: int = 30
 ) -> Optional[dict]:
-    """
-    Cosine-similarity search: find the most similar prior session vector
-    within the lookback window, excluding the querying account itself.
-    A very high similarity across DIFFERENT account_ids is a strong
-    'shared bot script' signal.
-    """
+    #use cosine similarity
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -119,10 +87,7 @@ def find_nearest_session(
     finally:
         conn.close()
 
-
 def bulk_load_sessions(df) -> None:
-    """Bulk-load a DataFrame of already-scored sessions (from train_model.py)
-    into pgvector, e.g. for backfilling historical data."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
