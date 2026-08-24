@@ -30,3 +30,5 @@ gait_scaler.joblib
 
 tempo_engine/dataset/HI-Small_Trans.csv
 tempo_engine/dataset/HI-Small_Patterns.txt
+
+tempo_engine/__pycache__

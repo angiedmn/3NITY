@@ -30,7 +30,26 @@ end_time = df["Timestamp"].max().ceil("h")
 raw_vectors, n_bins = build_activity_vectors(sequences, start_time, end_time)
 dtw_results = compute_dtw_for_candidates(candidate_pairs, raw_vectors)
 
-dtw_features = aggregate_dtw_features(dtw_results)
+
+# diagnostic only — not part of the pipeline, run manually after dtw_results exists
+
+# zero_pairs = dtw_results[dtw_results["dtw_distance"] == 0]
+# print(f"Zero-distance pairs: {len(zero_pairs)} / {len(dtw_results)} ({len(zero_pairs)/len(dtw_results):.2%})")
+
+# # merge in event_count for both sides of each zero-distance pair
+# ec = features_df.set_index(["account", "bank"])["event_count"]
+
+# zero_pairs = zero_pairs.copy()
+# zero_pairs["event_count_a"] = zero_pairs.set_index(["account_a", "bank_a"]).index.map(ec)
+# zero_pairs["event_count_b"] = zero_pairs.set_index(["account_b", "bank_b"]).index.map(ec)
+
+# print(zero_pairs[["event_count_a", "event_count_b"]].describe())
+
+
+dtw_features = aggregate_dtw_features(
+    dtw_results,
+    event_counts=features_df.set_index(["account", "bank"])["event_count"],
+)
 # print(dtw_features.shape)
 # print(dtw_features.describe())
 final_features = build_final_feature_matrix(features_df, dtw_features)
