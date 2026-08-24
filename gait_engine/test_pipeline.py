@@ -1,29 +1,16 @@
-"""
-test_pipeline.py
------------------
-End-to-end smoke test for the Gait Engine.
-Uses real account IDs from the IBM Kaggle dataset enriched with 
-synthetic telemetry to validate the ML pipeline end-to-end.
-
-Run:
-    python test_pipeline.py
-"""
+#run in terminal: python test_pipeline.py
 
 import numpy as np
 import pandas as pd
 
-# Import our new bridge script instead of the fake telemetry generator
-from bridge_dataset import enrich_ibm_with_gait
+from bridge_dataset import enrich_ibm_with_gait #ibm dataset
 from features import extract_feature_matrix, fit_scaler, save_scaler
 from train_model import (
-    train_isolation_forest,
-    score_to_gait_score,
-    generate_tags,
+    train_isolation_forest, score_to_gait_score, generate_tags,
 )
 
 def main():
-    print("=== Step 1: Simulate telemetry for IBM accounts ===")
-    # Using the specific file name downloaded from Kaggle
+    print("=== Step 1: Simulate telemetry for KAGGLE DATASET ===")
     input_csv = "HI-Small_Trans.csv" 
     output_csv = "gait_telemetry_synthetic.csv"
     
@@ -32,14 +19,14 @@ def main():
     print("\nLabel distribution:")
     print(df["label"].value_counts(), "\n")
 
-    print("=== Step 2: feature engineering ===")
+    print("=== Step 2: feature engineering ===") #saves this exact mathematical scaling formula to gait_scaler.joblib
     X = extract_feature_matrix(df)
     scaler = fit_scaler(X)
     X_scaled = scaler.transform(X)
     save_scaler(scaler, "gait_scaler.joblib")
     print(f"Feature matrix shape: {X_scaled.shape}\n")
 
-    print("=== Step 3: train IsolationForest ===")
+    print("=== Step 3: train IsolationForest ===") #gait_isolation_forest.joblib, scores every single account in the dataset on a 0-1 scale
     model = train_isolation_forest(X_scaled, contamination=0.10)
     import joblib
     joblib.dump(model, "gait_isolation_forest.joblib")
