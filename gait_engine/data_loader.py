@@ -1,21 +1,3 @@
-"""
-data_loader.py
---------------
-Loads the Kaggle IBM AML transactions CSV and extracts a clean list
-of unique account IDs to attach synthetic gait telemetry to.
-
-Kaggle "IBM Transactions for Anti Money Laundering (AML)" dataset
-typically has columns like:
-    Timestamp, From Bank, Account, To Bank, Account.1,
-    Amount Received, Receiving Currency, Amount Paid, Payment Currency,
-    Payment Format, Is Laundering
-
-The two account columns are usually named 'Account' (sender) and
-'Account.1' (receiver) because of how pandas handles duplicate headers.
-This loader is defensive about column naming since Kaggle has shipped
-slightly different header variants across dataset versions.
-"""
-
 import pandas as pd
 from pathlib import Path
 
@@ -23,7 +5,7 @@ from pathlib import Path
 SENDER_ACCOUNT_CANDIDATES = ["Account", "From Account", "Sender Account"]
 RECEIVER_ACCOUNT_CANDIDATES = ["Account.1", "To Account", "Receiver Account"]
 
-
+#loops through lists and return existing columns
 def _find_column(df: pd.DataFrame, candidates: list[str]) -> str:
     for c in candidates:
         if c in df.columns:
@@ -35,7 +17,6 @@ def _find_column(df: pd.DataFrame, candidates: list[str]) -> str:
 
 #check if files exist and load them
 def load_transactions(csv_path: str, nrows: int | None = None) -> pd.DataFrame:
-    """Load the raw Kaggle AML transactions CSV."""
     path = Path(csv_path)
     if not path.exists():
         raise FileNotFoundError(
@@ -48,35 +29,21 @@ def load_transactions(csv_path: str, nrows: int | None = None) -> pd.DataFrame:
 
 #loads the transactions and finds the correct headers
 def load_account_ids(csv_path: str, nrows: int | None = None) -> pd.Series:
-    """
-    Load unique account IDs from the Kaggle IBM AML transactions CSV.
-    Combines both sender and receiver account columns since either side
-    of a transaction is a valid account to attach telemetry to.
-    """
     df = load_transactions(csv_path, nrows=nrows)
-
     sender_col = _find_column(df, SENDER_ACCOUNT_CANDIDATES)
     receiver_col = _find_column(df, RECEIVER_ACCOUNT_CANDIDATES)
-
     accounts = pd.concat([df[sender_col], df[receiver_col]], ignore_index=True)
     unique_accounts = accounts.dropna().drop_duplicates().reset_index(drop=True)
     unique_accounts.name = "account_id"
     return unique_accounts
 
+#creates two mini-tables mapping Senders to the Is Laundering flag, and Receivers to the Is Laundering flag, then stacks them together.
 def load_laundering_labels(csv_path: str, nrows: int | None = None) -> pd.DataFrame:
-    """
-    Optional helper: pull the 'Is Laundering' ground-truth flag per
-    transaction, aggregated up to the account level (an account is
-    flagged 'suspect' if it appears in ANY laundering-labeled transaction).
-    Useful later for cross-checking Gait_Score against ground truth.
-    """
     df = load_transactions(csv_path, nrows=nrows)
     if "Is Laundering" not in df.columns:
         raise ValueError("'Is Laundering' column not found in this CSV.")
-
     sender_col = _find_column(df, SENDER_ACCOUNT_CANDIDATES)
     receiver_col = _find_column(df, RECEIVER_ACCOUNT_CANDIDATES)
-
     sender_flags = df[[sender_col, "Is Laundering"]].rename(
         columns={sender_col: "account_id"}
     )
@@ -92,7 +59,6 @@ def load_laundering_labels(csv_path: str, nrows: int | None = None) -> pd.DataFr
 
 if __name__ == "__main__":
     import sys
-
     csv_path = sys.argv[1] if len(sys.argv) > 1 else "HI-Small_Trans.csv"
     ids = load_account_ids(csv_path, nrows=200_000)
     print(f"Loaded {len(ids)} unique account IDs")
