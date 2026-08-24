@@ -27,3 +27,6 @@ gait_scaler.joblib
 .vscode/
 .idea/
 .DS_Store
+
+tempo_engine/dataset/HI-Small_Trans.csv
+tempo_engine/dataset/HI-Small_Patterns.txt
