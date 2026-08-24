@@ -104,3 +104,16 @@ def bulk_load_sessions(df) -> None:
         conn.commit()
     finally:
         conn.close()
+
+#delets data older than 30 days (retention days)
+def prune_stale_sessions(retention_days: int = 30) -> None:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM gait_sessions WHERE created_at < now() - (%s || ' days')::interval",
+                (retention_days,)
+            )
+        conn.commit()
+    finally:
+        conn.close()
