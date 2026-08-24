@@ -30,7 +30,7 @@ def init_db() -> None:
                 f"""
                 CREATE TABLE IF NOT EXISTS gait_sessions (
                     id SERIAL PRIMARY KEY, account_id TEXT NOT NULL,
-                    embedding VECTOR({VECTOR_DIM}) NOT NULL, gait_score FLOAT NOT NULL,
+                    embedding VECTOR({VECTOR_DIM}) NOT NULL,gait_score FLOAT NOT NULL,
                     created_at TIMESTAMPTZ DEFAULT now()
                 );
                 """

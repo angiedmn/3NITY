@@ -11,6 +11,19 @@ FEATURE_COLUMNS = [
     "mouse_curve_index", "time_of_day_risk",
 ]
 
+SAFE_BASELINES = {
+    "clipboard_paste_count": 0.0,
+    "app_switch_count": 0.0,
+    "keystroke_interval_mean_ms": 150.0, # Normal human speed
+    "keystroke_interval_std_ms": 40.0,
+    "session_dwell_time_sec": 60.0,
+    "touch_pressure_var": 0.03,
+    "gyro_tilt_var": 0.03,
+    "flight_time_mean_ms": 80.0,
+    "mouse_curve_index": 1.5, # Safe human curve, won't trigger the bot tag
+    "time_of_day_risk": 0.2
+}
+
 #pull numeric feature columns
 def extract_feature_matrix(df: pd.DataFrame) -> np.ndarray:
     missing = [c for c in FEATURE_COLUMNS if c not in df.columns]
@@ -32,5 +45,5 @@ def load_scaler(path: str = "gait_scaler.joblib") -> StandardScaler:
 
 #to scale a single session's features
 def vectorize_single_session(payload: dict, scaler: StandardScaler) -> np.ndarray:
-    row = np.array([[payload.get(col, 0.0) for col in FEATURE_COLUMNS]], dtype=float)
+    row = np.array([[payload.get(col, SAFE_BASELINES[col]) for col in FEATURE_COLUMNS]], dtype=float)
     return scaler.transform(row)
