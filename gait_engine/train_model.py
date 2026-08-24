@@ -49,7 +49,7 @@ def generate_tags(row: pd.Series) -> list[str]:
     if row.get("time_of_day_risk", 0.0) > 0.8:
         tags.append("HIGH_RISK_HOURS")
         
-    # 5. Return the fully combined list!
+    # 5. Return the fully combined list
     return tags
 
 
@@ -97,7 +97,6 @@ def run_training_pipeline(
     X = extract_feature_matrix(df)
     scaler = fit_scaler(X)
     X_scaled = scaler.transform(X)
-
     model = train_isolation_forest(X_scaled)
 
     raw_scores = model.decision_function(X_scaled)
