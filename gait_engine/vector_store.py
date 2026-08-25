@@ -6,7 +6,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 from pgvector.psycopg2 import register_vector
 from features import FEATURE_COLUMNS
-
+from typing import Optional, Dict, Any
 VECTOR_DIM = len(FEATURE_COLUMNS) #config
 DB_CONFIG = { #connection details
     "host": os.environ.get("GAIT_DB_HOST", "localhost"),
@@ -115,5 +115,49 @@ def prune_stale_sessions(retention_days: int = 30) -> None:
                 (retention_days,)
             )
         conn.commit()
+    finally:
+        conn.close()
+        import os
+
+
+DB_URL = os.environ.get("SUPABASE_DB_URL")
+
+def get_connection():
+    if not DB_URL:
+        raise ValueError("SUPABASE_DB_URL environment variable is missing.")
+    conn = psycopg2.connect(DB_URL)
+    register_vector(conn)
+    return conn
+
+def check_gait_baseline(account_id: str, vector: np.ndarray, lookback_days: int = 30) -> Optional[float]:
+    """
+    Compares the incoming telemetry against the account's historical baseline.
+    Returns cosine similarity (1.0 = identical, 0.0 = completely different).
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            query = """
+                SELECT 1 - (embedding <=> %s::vector) AS similarity
+                FROM gait_sessions
+                WHERE account_id = %s AND created_at > now() - (%s || ' days')::interval
+                ORDER BY embedding <=> %s::vector LIMIT 1
+            """
+            cur.execute(query, (vector.tolist(), account_id, lookback_days, vector.tolist()))
+            row = cur.fetchone()
+            return float(row[0]) if row else None
+    finally:
+        conn.close()
+
+def save_gait_session(account_id: str, vector: np.ndarray) -> None:
+    """Inserts a new telemetry session vector into Supabase."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO gait_sessions (account_id, embedding) VALUES (%s, %s::vector)",
+                (account_id, vector.tolist())
+            )
+            conn.commit()
     finally:
         conn.close()
