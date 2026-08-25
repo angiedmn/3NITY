@@ -1,15 +1,21 @@
 import asyncio
+import datetime
 import json
 import logging
 import math
-import datetime
-import urllib.request
+import os
+from typing import Any, Dict, Optional
 import urllib.error
-from typing import Optional
-from urllib.parse import urlparse, quote
+from urllib.parse import quote, urlparse
+import urllib.request
+import psycopg2
 
 logger = logging.getLogger(__name__)
 
+# --- DATABASE CONFIGURATION ---
+DB_URL = os.environ.get("SUPABASE_DB_URL")
+
+# --- TIMEOUT & RESOLUTION CONFIGURATION ---
 RDAP_TIMEOUT_SECONDS = 10.0
 GEOCODE_TIMEOUT_SECONDS = 8.0
 PLACES_TIMEOUT_SECONDS = 8.0
@@ -20,6 +26,37 @@ TRANCO_TIMEOUT_SECONDS = 8.0
 # just count unrelated foot traffic and wash out the signal entirely.
 COLOCATION_SEARCH_RADIUS_METERS = 50
 
+
+# =====================================================================
+# 1. DATABASE KYB INGESTION
+# =====================================================================
+
+def fetch_corporate_kyb(account_id: str) -> dict:
+    """Queries Supabase to pull synthetic corporate identity."""
+    conn = psycopg2.connect(DB_URL)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT company_name, jurisdiction_code, domain_name, registered_address 
+                FROM mirage_registry WHERE account_id = %s
+            """, (account_id,))
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"Account {account_id} not found in KYB Registry.")
+            
+            return {
+                "company_name": row[0],
+                "jurisdiction_code": row[1],
+                "domain_name": row[2],
+                "registered_address": row[3]
+            }
+    finally:
+        conn.close()
+
+
+# =====================================================================
+# 2. RDAP & DOMAIN INTELLIGENCE
+# =====================================================================
 
 def _fetch_rdap_sync(domain: str) -> dict:
     """Blocking RDAP GET, run inside a worker thread via asyncio.to_thread
@@ -91,6 +128,27 @@ async def fetch_ip_intelligence(domain: str) -> dict:
     )
     return {"is_datacenter_ip": True}
 
+
+async def gather_digital_exhaust(domain_url: str) -> dict:
+    """Fetches all digital footprint data concurrently."""
+    domain = urlparse(str(domain_url)).hostname or str(domain_url).strip("/")
+    if domain.startswith("www."):
+        domain = domain[4:]
+
+    domain_task = fetch_domain_data(domain)
+    ip_task = fetch_ip_intelligence(domain)
+
+    domain_result, ip_result = await asyncio.gather(domain_task, ip_task)
+
+    return {
+        "domain_age_days": domain_result.get("age_days"),
+        "has_commercial_ip": ip_result.get("is_datacenter_ip", False)
+    }
+
+
+# =====================================================================
+# 3. PHYSICAL GEOLOCATION & CO-LOCATION DENSITY
+# =====================================================================
 
 def _geocode_address_sync(address: str, api_key: str) -> Optional[tuple]:
     """Turns a free-text address into (lat, lng) via Google's Geocoding
@@ -169,6 +227,10 @@ async def fetch_colocation_density(address: str, api_key: str) -> Optional[int]:
         return None
 
 
+# =====================================================================
+# 4. WEB TRAFFIC PROXY (TRANCO TOP 1M)
+# =====================================================================
+
 def _fetch_tranco_rank_sync(domain: str) -> Optional[int]:
     url = f"https://tranco-list.eu/api/ranks/domain/{quote(domain, safe='')}"
     with urllib.request.urlopen(url, timeout=TRANCO_TIMEOUT_SECONDS) as response:
@@ -180,7 +242,7 @@ def _fetch_tranco_rank_sync(domain: str) -> Optional[int]:
     return ranks[-1].get("rank")
 
 
-async def fetch_traffic_score(domain: str) -> Optional[float]:
+async def fetch_traffic_score(domain_url: str) -> Optional[float]:
     """Real traffic proxy via the free Tranco top-1M domain ranking — no
     API key required at all. Maps rank 1 -> ~1.0 and rank 1,000,000 ->
     ~0.0 on a log scale (traffic differences are log-distributed, not
@@ -194,6 +256,10 @@ async def fetch_traffic_score(domain: str) -> Optional[float]:
     evidence the company is a shell — being outside the top 1M sites on
     the internet says almost nothing on its own.
     """
+    domain = urlparse(str(domain_url)).hostname or str(domain_url).strip("/")
+    if domain.startswith("www."):
+        domain = domain[4:]
+
     try:
         rank = await asyncio.to_thread(_fetch_tranco_rank_sync, domain)
         if not rank or rank <= 0:
@@ -208,18 +274,43 @@ async def fetch_traffic_score(domain: str) -> Optional[float]:
         return None
 
 
-async def gather_digital_exhaust(domain_url: str) -> dict:
-    """Fetches all digital footprint data concurrently."""
-    domain = urlparse(str(domain_url)).hostname or str(domain_url).strip("/")
-    if domain.startswith("www."):
-        domain = domain[4:]
+# =====================================================================
+# 5. ASYNC ORCHESTRATION / AUDIT PIPELINE
+# =====================================================================
 
-    domain_task = fetch_domain_data(domain)
-    ip_task = fetch_ip_intelligence(domain)
+async def mock_osint_lookup(domain: str) -> float:
+    """Simulates a 1-second WHOIS/DNS lookup for testing."""
+    await asyncio.sleep(1.0)
+    return 95.0 if len(domain) < 20 else 20.0
 
-    domain_result, ip_result = await asyncio.gather(domain_task, ip_task)
 
+async def execute_mirage_audit(account_id: str, google_places_api_key: str = "") -> Dict[str, Any]:
+    """Fully async Mirage evaluation (Direct async pipeline).
+    
+    1. Fetches KYB data from Supabase.
+    2. Runs all external OSINT checks concurrently (RDAP, IP, Places, Tranco).
+    3. Assembles and returns the full feature set.
+    """
+    # 1. Fetch Company Data from Supabase
+    kyb_data = fetch_corporate_kyb(account_id)
+
+    # 2. Fire external OSINT network requests concurrently
+    exhaust_task = gather_digital_exhaust(kyb_data["domain_name"])
+    colocation_task = fetch_colocation_density(kyb_data["registered_address"], google_places_api_key)
+    traffic_task = fetch_traffic_score(kyb_data["domain_name"])
+
+    exhaust_results, colocation_result, traffic_result = await asyncio.gather(
+        exhaust_task, colocation_task, traffic_task
+    )
+
+    # 3. Assemble and return standard feature dictionary
     return {
-        "domain_age_days": domain_result.get("age_days"),
-        "has_commercial_ip": ip_result.get("is_datacenter_ip", False)
+        "company_name": kyb_data["company_name"],
+        "jurisdiction_code": kyb_data["jurisdiction_code"],
+        "domain_name": kyb_data["domain_name"],
+        "registered_address": kyb_data["registered_address"],
+        "domain_age_days": exhaust_results.get("domain_age_days"),
+        "has_commercial_ip": exhaust_results.get("has_commercial_ip"),
+        "co_location_density": colocation_result,
+        "local_traffic_score": traffic_result,
     }
