@@ -5,7 +5,7 @@ import numpy as np
 import psycopg2
 from psycopg2.extras import execute_values
 from pgvector.psycopg2 import register_vector
-from features import FEATURE_COLUMNS
+from gait_engine.features import FEATURE_COLUMNS
 from typing import Optional, Dict, Any
 VECTOR_DIM = len(FEATURE_COLUMNS) #config
 DB_CONFIG = { #connection details

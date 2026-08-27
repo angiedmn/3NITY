@@ -83,7 +83,6 @@ def run_training_pipeline(
 
     return df
 
-
 def evaluate_against_ground_truth(df: pd.DataFrame) -> None:
     summary = df.groupby("label")["Gait_Score"].agg(["mean", "median", "count"])
     print("\nGait_Score by true label (sanity check on synthetic data):")

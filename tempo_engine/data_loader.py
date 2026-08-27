@@ -1,5 +1,5 @@
 import pandas as pd
-from config import DATA_PATH
+from tempo_engine.config import DATA_PATH
 import os
 import psycopg2
 import pandas as pd
